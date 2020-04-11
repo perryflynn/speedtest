@@ -1,56 +1,68 @@
-speedtest
-=========
+# speedtest
 
-Simple bandwidth test in browser javascript.
+Simple upload and download bandwidth test in browser javascript.
 
-- [Example](#example)
-- [Installation](#installation)
-- [Note on testing](#note-on-testing)
-- [Unlicense](#unlicense)
-- [Author](#author)
+## Workflow
 
+Download:
 
-Example
--------
+- Test download with 5 Megabytes of data
+- Calculate a amount of data for a 10 Seconds long test
+- Perform download speed test
 
-<https://fvdm.com/speedtest/>
+Upload:
 
-You can change the number precision up to 3 decimals using the arrow
-keys on your keyboard.
+- Test upload with 5 Megabytes of data
+- Calculate a amount of data for a 10 Seconds long test
+- Perform upload speed test
 
+## Demo
 
-Installation
-------------
+![Demo](demo.gif)
 
-Just clone the repo:
+## Installation
 
-```sh
-git clone https://github.com/fvdm/speedtest
-```
-
-To keep the repository small I have not included the test binaries.
-You can download them from my server.
-
-**Please don't hotlink these!!**
-
-* [1mb.bin](https://fvdm.com/speedtest/1mb.bin)
-* [5mb.bin](https://fvdm.com/speedtest/5mb.bin)
-* [10mb.bin](https://fvdm.com/speedtest/10mb.bin)
-* [100mb.bin](https://fvdm.com/speedtest/100mb.bin)
-
-Or generate them yourself:
-
-The `of=` specifies the output filename and `bs=` the filesize in bytes
-where the M suffix is megabytes and G is gigabytes.
+Just download the index.html:
 
 ```sh
-# 100mb.bin
-dd if=/dev/zero of=100mb.bin bs=100M count=1
+wget "https://github.com/perryflynn/speedtest/raw/upload/index.html"
 ```
 
+### Generate a large test file for download
 
-Note on testing
----------------
+```sh
+# generates a 5GB large test file
+dd if=/dev/urandom of=5000mb.bin bs=512 count=10000000
+```
+
+The test mechanism uses [HTTP Byte Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests).
+After a short negotiation with 5 Megabytes, it uses extact this amount
+of data to run a test for 10 seconds.
+
+### Create fake endpoint for uploads
+
+The following example NGINX configuration creates a fake endpoint
+for uploading test data which is streamed into `/dev/null`:
+
+```
+location /upload {
+    gzip off;
+    client_max_body_size 10G;
+    client_body_buffer_size 1m;
+    client_body_in_single_buffer on;
+
+    echo_read_request_body;
+    access_log /dev/null postdata;
+    default_type text/plain;
+    return 200 "OK";
+}
+```
+
+**This not work with HTTP2!**
+
+If you have an idea why, please let me know. :-)
+
+## Note on testing
 
 With these kind of tools you are testing the available bandwidth of
 the slowest connection between your device and the host. When your web
@@ -67,9 +79,7 @@ my provider's speedtest I get double at least. Doing the same to my
 LiquidSky box in Frankfurt I easily get over 900 Mbit. So there is a
 bottleneck somewhere between the web server and my home ISP.
 
-
-Unlicense
----------
+## Unlicense
 
 This is free and unencumbered software released into the public domain.
 
@@ -96,11 +106,16 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <http://unlicense.org/>
 
-
-Author
-------
+## The original Author
 
 [Franklin van de Meent](https://fra.nkl.in)
 
 Do you like this project?
 Please consider to [buy me a coffee](https://ko-fi.com/franklin).
+
+## Refactoring, negotiation mechanism and upload feature by
+
+[Christian Blechert](https://serverless.industries/)
+
+Do you like this project?
+Please consider to [buy me a coffee](https://www.paypal.me/perryflynn).

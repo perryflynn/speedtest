@@ -1,253 +1,508 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <!--
-      Author:  Franklin van de Meent (https://fra.nkl.in)
-      Source:  https://github.com/fvdm/speedtest
-    -->
-    <title>Speedtest</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-      body {
-        font-family: sans-serif;
-        font-size: 10px;
-        background-color: #e1fff2;
-        padding: 0;
-        margin: 0;
-      }
-      #wrap {
-        position: absolute;
-        width: 200px;
-        height: 200px;
-        margin-left: -100px;
-        margin-top: -100px;
-        left: 50%;
-        top: 50%;
-        background-color: #fff;
-        text-align: center;
-      }
-      button {
-        padding: 0.8rem;
-        border: 0;
-        outline: none;
-        background-color: #fff;
-        font-weight: bold;
-      }
-      button.choice {
-        background-color: #ffc800;
-      }
-      progress {
-        width: 100%;
-        height: 30px;
-        -webkit-appearance: none;
-        visibility: hidden;
-      }
-      progress::-webkit-progress-bar {
-        background-color: #b4ffe0;
-      }
-      progress::-webkit-progress-value {
-        background-color:#00ff9a;
-      }
-      #result {
-        font-size: 1.5rem;
-        font-variant-numeric: tabular-nums;
-      }
-      #resultDone {
-        font-size: 2rem;
-        font-weight: bold;
-      }
-      #eta {
-        font-size: 1rem;
-        font-variant-numeric: tabular-nums;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="wrap">
-      <p>
-        <button data-file="1mb.bin">1 MB</button>
-        <button data-file="5mb.bin">5 MB</button>
-        <button data-file="10mb.bin">10 MB</button>
-        <button data-file="100mb.bin">100 MB</button>
-        <button data-file="1000mb.bin">1000 MB</button>
-      </p>
-      <p>
-        <progress value="0" max="100"></progress>
-      </p>
-      <p>
-        <span id="result">speedtest</span><br>
-        <span id="eta">choose a size</span>
-      </p>
-    </div>
+    <head>
+        <!--
+        Original Author:  Franklin van de Meent (https://fra.nkl.in)
+        Original Source:  https://github.com/fvdm/speedtest
 
-    <script>
-      // global vars
-      let req;
-      let start = 0;
-      let count = 0;
-      let sum = 0;
-      let decimals = 0;
+        Fork by: Christian Blechert (https://serverless.industries)
+        Source: https://github.com/perryflynn/speedtest
+        -->
+        <meta charset="utf-8">
+        <title>Speedtest</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {
+                font-family: sans-serif;
+                font-size: 10px;
+                background-color: #e1fff2;
+                padding: 0px;
+                margin: 0px;
+                overflow: hidden;
+            }
 
-      // control precision
-      function onKeyDown (ev) {
-        switch (ev.code) {
-          case 'ArrowUp':
-          case 'ArrowRight':
-            decimals++;
-            decimals = decimals > 3 ? 3 : decimals;
-            break;
+            .outline {
+                width: 100%;
+                height: 100vh;
+                margin: 0px;
+                padding: 0px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: row;
+            }
 
-          case 'ArrowDown':
-          case 'ArrowLeft':
-            decimals--;
-            decimals = decimals < 0 ? 0 : decimals;
-            break;
-        }
-      }
+            .outcolumn {
+                flex: 1;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-direction: column;
+            }
 
-      document.addEventListener ('keydown', onKeyDown);
+            #wrap {
+                width: 200px;
+                background-color: #fff;
+                text-align: center;
+                flex: 1;
+            }
 
-      // store <button> tags in array
-      const btns = Array.from (document.querySelectorAll ('button'));
+            #message {
+                text-align: center;
+            }
 
-      // add click handler to buttons
-      btns.forEach (btn => {
-        btn.addEventListener ('click', testDownload);
-      });
+            button {
+                padding: 0.8rem;
+                border: 0;
+                outline: none;
+                background-color: #fff;
+                font-weight: bold;
+            }
 
+            button:hover {
+                cursor: pointer;
+            }
 
-      /**
-       * Round number to defined decimals
-       *
-       * @param   {number}  num   Number to round
-       * @param   {number}  deci  Number of decimals to round to
-       * @return  {string}        Rounded number with trailing zeros
-       */
+            button.choice {
+                background-color: #ffc800;
+            }
 
-      function dec (num, deci) {
-        let amount;
-        let result;
-        let missing;
-        let i;
+            progress {
+                width: 100%;
+                height: 30px;
+                -webkit-appearance: none;
+            }
 
-        // rounding
-        if (deci) {
-          amount = Math.pow (10, deci || 1);
-          result = Math.round (num * amount) / amount;
-        } else {
-          result = Math.round (num);
-        }
+            progress::-webkit-progress-bar {
+                background-color: #b4ffe0;
+            }
 
-        // force trailing zeros
-        result = String (result);
+            progress::-webkit-progress-value {
+                background-color: #00ff9a;
+            }
 
-        if (!deci) {
-          return result;
-        }
+            #result, #resultUp {
+                font-size: 1.5rem;
+                font-variant-numeric: tabular-nums;
+            }
 
-        if (!~result.indexOf ('.')) {
-          missing = deci;
-          result += '.';
-        } else {
-          missing = deci - result.split ('.')[1].length;
-        }
+            #eta, #etaUp {
+                font-size: 1rem;
+                font-variant-numeric: tabular-nums;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="outline">
+            <div class="outcolumn">
+                <div id="wrap">
+                    <p>
+                        <button data-file="5000mb.bin">Start</button>
+                    </p>
+                    <p id="message">Idle</p>
+                    <p>
+                        <progress value="0" max="100"></progress>
+                    </p>
+                    <p class="center downtitle" style="display:none;">Download</p>
+                    <p class="downinto" style="display:none;">
+                        <span id="result"></span><br>
+                        <span id="eta"></span>
+                    </p>
+                    <p class="center uptitle" style="display:none;">Upload</p>
+                    <p class="upinto" style="display:none;">
+                        <span id="resultUp"></span><br>
+                        <span id="etaUp"></span>
+                    </p>
 
-        if (missing) {
-          for (i = missing; i > 0; i--) {
-            result += '0';
-          }
-        }
+                    <p style="margin-top: 20px;">ProTipp™: Open the developer tools with F12 for nerd infos.</p>
+                </div>
+            </div>
+        </div>
 
-        // done
-        return result;
-      }
+        <script>
+            const wrap = document.getElementById('wrap');
+            const updateEventName = 'testUpdate';
+            const downloadEventName = 'downloadUpdate';
+            const uploadEventName = 'uploadUpdate';
 
 
-      /**
-       * Test completed
-       *
-       * @return  {void}
-       */
+            // ui logic
+            (function()
+            {
+                let decimals = 0;
 
-      function testDone () {
-        const diff = (Date.now() - start) / 1000;
+                /**
+                 * Round number to defined decimals
+                 */
+                const dec = (num, deci) =>
+                {
+                    let amount;
+                    let result;
+                    let missing;
 
-        if (req.readyState !== 4) {
-          return;
-        }
+                    // rounding
+                    if (deci) {
+                        amount = Math.pow(10, deci || 1);
+                        result = Math.round(num * amount) / amount;
+                    } else {
+                        result = Math.round(num);
+                    }
 
-        document.querySelector ('progress').style.visibility = 'hidden';
-        document.querySelector ('#result').className = 'resultDone';
-        document.querySelector ('#eta').innerHTML = dec (diff, 2) + ' sec';
-        req = null;
-      }
+                    // force trailing zeros
+                    result = String(result);
 
+                    if (!deci) {
+                        return result;
+                    }
 
-      /**
-       * Test progress handler
-       *
-       * @param   {Event}  ev  XMLHttpRequest.onprogress event
-       * @return  {void}
-       */
+                    if (!~result.indexOf('.')) {
+                        missing = deci;
+                        result += '.';
+                    } else {
+                        missing = deci - result.split('.')[1].length;
+                    }
 
-      function testRunning (ev) {
-        const now = Date.now ();
+                    if (missing) {
+                        for (let i = missing; i > 0; i--) {
+                            result += '0';
+                        }
+                    }
 
-        let percent = 0.0;
-        let Bps = 0;
-        let avg = 0;
-        let eta = 0;
+                    // done
+                    return result;
+                };
 
-        if (ev.lengthComputable && ev.total > 0) {
-          Bps = ev.loaded / ((now - start) / 1000);
-          mbit = Bps / 1024 / 1024 * 8;
-          count++;
-          sum += mbit;
-          avg = sum / count;
-          percent = ev.loaded / ev.total * 100.0;
-          eta = (ev.total - ev.loaded) / Bps;
-        }
+                // Change decimal precision
+                document.addEventListener('keydown', ev =>
+                {
+                    switch (ev.code)
+                    {
+                        case 'ArrowUp':
+                        case 'ArrowRight':
+                            decimals++;
+                            decimals = decimals > 3 ? 3 : decimals;
+                            break;
 
-        document.querySelector ('progress').value = percent;
-        document.querySelector ('#result').innerHTML = dec (avg, decimals) + ' Mbit/s';
-        document.querySelector ('#eta').innerHTML = dec (eta, decimals) + ' sec';
-      }
+                        case 'ArrowDown':
+                        case 'ArrowLeft':
+                            decimals--;
+                            decimals = decimals < 0 ? 0 : decimals;
+                            break;
+                    }
+                });
 
+                // Listen for upload AND download events
+                const genericEventUpdate = (type, data) =>
+                {
+                    document.querySelector('#message').innerHTML = data.detail.message;
+                    document.querySelector('progress').value = data.detail.percent;
+                };
 
-      /**
-       * Start new test
-       * and abort any running test
-       *
-       * @param   {Event}  ev  Click event
-       * @return  {void}
-       */
+                // Listen for download events
+                wrap.addEventListener(downloadEventName, data =>
+                {
+                    genericEventUpdate('download', data);
 
-      function testDownload (ev) {
-        if (req) {
-          req.abort ();
-        }
+                    document.querySelector('#result').innerHTML = dec(data.detail.averageMbit, decimals) + ' Mbit/s';
+                    document.querySelector('#eta').innerHTML = dec(data.detail.eta, decimals) + ' sec';
+                    document.querySelector('.downtitle').style.display = "";
+                    document.querySelector('.downinto').style.display = "";
 
-        req = new XMLHttpRequest;
+                    if (data.detail.done)
+                    {
+                        const diff = (data.detail.now - data.detail.start) / 1000;
+                        document.querySelector('#eta').innerHTML = dec(diff, 2) + ' sec';
+                    }
+                })
 
-        start = Date.now ();
-        count = 0;
-        sum = 0;
+                // Listen for upload events
+                wrap.addEventListener(uploadEventName, data =>
+                {
+                    genericEventUpdate('upload', data);
 
-        btns.forEach (btn => {
-          btn.className = '';
-        });
+                    document.querySelector('#resultUp').innerHTML = dec(data.detail.averageMbit, decimals) + ' Mbit/s';
+                    document.querySelector('#etaUp').innerHTML = dec(data.detail.eta, decimals) + ' sec';
+                    document.querySelector('.uptitle').style.display = "";
+                    document.querySelector('.upinto').style.display = "";
 
-        ev.target.className = 'choice';
-        document.querySelector ('progress').value = 0;
-        document.querySelector ('progress').style.visibility = 'visible';
+                    if (data.detail.done)
+                    {
+                        const diff = (data.detail.now - data.detail.start) / 1000;
+                        document.querySelector('#etaUp').innerHTML = dec(diff, 2) + ' sec';
+                    }
+                });
 
-        req.onprogress = testRunning;
-        req.onreadystatechange = testDone;
+            })();
 
-        // load file avoiding the cache
-        req.open ('GET', ev.target.dataset.file + '?' + start, true);
-        req.send (null);
-      }
-    </script>
-  </body>
+            // business logic
+            (function()
+            {
+
+                /**
+                 * Chunked download
+                 */
+                const downloadChunk = (url, start, end, cfg) => {
+                    const req = new XMLHttpRequest();
+                    req.responseType = 'blob';
+
+                    const promise = new Promise((resolve, reject) =>
+                    {
+                        req.onreadystatechange = ev =>
+                        {
+                            if (req.readyState !== 4)
+                            {
+                                return;
+                            }
+
+                            if (req.status >= 200 && req.status < 300)
+                            {
+                                resolve(ev);
+                            }
+                            else
+                            {
+                                reject(ev);
+                            }
+                        };
+
+                        req.onerror = ev =>
+                        {
+                            reject(ev);
+                        };
+                    });
+
+                    req.open('GET', url, true);
+                    req.setRequestHeader("Range", "bytes=" + start + "-" + end);
+
+                    if (cfg)
+                    {
+                        cfg(req);
+                    }
+
+                    req.send(null);
+
+                    return promise;
+                };
+
+                /**
+                 * Chunked upload
+                 */
+                const uploadChunk = (url, blob, start, end, cfg) => {
+                    const req = new XMLHttpRequest();
+                    req.responseType = 'blob';
+
+                    const promise = new Promise((resolve, reject) =>
+                    {
+                        req.onreadystatechange = ev =>
+                        {
+                            if (req.readyState !== 4)
+                            {
+                                return;
+                            }
+
+                            if (req.status >= 200 && req.status < 300)
+                            {
+                                resolve(ev);
+                            }
+                            else
+                            {
+                                reject(ev);
+                            }
+                        };
+
+                        req.onerror = ev =>
+                        {
+                            reject(ev);
+                        };
+                    });
+
+                    req.open("POST", url, true);
+
+                    if (cfg)
+                    {
+                        cfg(req);
+                    }
+
+                    var form = new FormData();
+                    form.append("upload", new File([ blob.slice(start, end) ], "awesome.jpg"));
+
+                    req.send(form);
+
+                    return promise;
+                };
+
+                /**
+                 * Convert any value into a promise
+                 */
+                const of = (value) => {
+                    return new Promise(resolve => resolve(value));
+                };
+
+                /**
+                 * Update the details event object
+                 */
+                const updateDetails = (details, ev) =>
+                {
+                    if (ev.lengthComputable && ev.total > 0)
+                    {
+                        // update download test progress
+                        details.now = Date.now();
+                        const Bps = ev.loaded / ((details.now - details.start) / 1000);
+                        details.currentMbit = Bps / 1024 / 1024 * 8;
+
+                        details.measureCounter++;
+                        details.measureSum += details.currentMbit;
+
+                        details.averageMbit = details.measureSum / details.measureCounter;
+                        details.percent = ev.loaded / ev.total * 100.0;
+                        details.eta = (ev.total - ev.loaded) / Bps;
+
+                        return true;
+                    }
+                    return false;
+                };
+
+                /**
+                 * Download speed test 2.0
+                 */
+                const testDownloadNext = ev =>
+                {
+                    ev.target.style.display = "none";
+
+                    // run now
+                    const url = ev.target.dataset.file;
+                    const beginTime = performance.now();
+                    const targetTime = 10000;
+                    const initialIndexIncrement = 1024 * 1024 * 5;
+
+                    console.group('Test Download...');
+                    console.info('Begin to negotiate download size...');
+
+                    const details =
+                    {
+                        message: null,
+                        done: false,
+                        start: null,
+                        now: null,
+                        measureCounter: 0,
+                        measureSum: 0,
+                        currentMbit: 0,
+                        averageMbit: 0,
+                        eta: 0,
+                        percent: 0
+                    };
+
+                    details.message = 'Negotiate...';
+                    wrap.dispatchEvent(new CustomEvent(downloadEventName, { detail: details }));
+
+                    return downloadChunk(url + '?' + Date.now(), 1, initialIndexIncrement).then(() =>
+                    {
+                        // use the download stats to calculate the real test size
+                        const duration = performance.now() - beginTime;
+                        const newEndIndex = Math.round(initialIndexIncrement / duration * targetTime) + initialIndexIncrement;
+
+                        console.log('Took ', Math.round(duration * 100) / 100, 'ms for downloading ', Math.round(initialIndexIncrement / 1024 / 1024 * 100) / 100, 'MB of test data');
+                        console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for the real test');
+
+                        return of(newEndIndex);
+                    })
+                    .then(newEndIndex =>
+                    {
+                        // Download speed test
+                        details.start = Date.now();
+                        details.message = "Test download...";
+
+                        return downloadChunk(url + '?' + Date.now(), 1, newEndIndex, req =>
+                        {
+                            req.addEventListener('progress', ev =>
+                            {
+                                if (updateDetails(details, ev))
+                                {
+                                    wrap.dispatchEvent(new CustomEvent(downloadEventName, { detail: details }));
+                                }
+                            });
+                        });
+                    })
+                    .then(res =>
+                    {
+                        // Finalize download speedtest
+                        details.now = Date.now();
+                        details.message = "Done!";
+                        details.done = true;
+                        wrap.dispatchEvent(new CustomEvent(downloadEventName, { detail: details }));
+
+                        console.log(details);
+                        console.groupEnd();
+
+                        // transfer blob to upload test
+                        return of(res.target.response);
+                    })
+                    .then(blob =>
+                    {
+                        const uploadBegin = performance.now();
+
+                        console.group('Test Upload...');
+                        console.info('Begin to negotiate upload size...');
+
+                        return uploadChunk("/upload" + '?' + Date.now(), blob, 1, initialIndexIncrement).then(() =>
+                        {
+                            // use the upload stats to calculate the real test size
+                            const duration = performance.now() - uploadBegin;
+                            const newEndIndex = Math.round(initialIndexIncrement / duration * targetTime) + initialIndexIncrement;
+
+                            console.log('Took ', Math.round(duration * 100) / 100, 'ms for uploading ', Math.round(initialIndexIncrement / 1024 / 1024 * 100) / 100, 'MB of test data');
+                            console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for the real test');
+
+                            return of({ length: newEndIndex, blob: blob });
+                        });
+                    })
+                    .then(negInfo =>
+                    {
+                        // Upload speed test
+                        details.start = Date.now();
+                        details.now = null;
+                        details.done = false;
+                        details.message = "Test upload...";
+
+                        details.measureCounter = 0;
+                        details.measureSum = 0;
+                        details.currentMbit = 0;
+                        details.averageMbit = 0;
+                        details.eta = 0;
+                        details.percent = 0;
+
+                        return uploadChunk("/upload" + '?' + Date.now(), negInfo.blob, 1, negInfo.length, req =>
+                        {
+                            req.upload.addEventListener('progress', ev =>
+                            {
+                                if (updateDetails(details, ev))
+                                {
+                                    wrap.dispatchEvent(new CustomEvent(uploadEventName, { detail: details }));
+                                }
+                            });
+                        });
+                    })
+                    .then(res =>
+                    {
+                        // Finalize upload speedtest
+                        details.now = Date.now();
+                        details.message = "Done!";
+                        details.done = true;
+                        wrap.dispatchEvent(new CustomEvent(uploadEventName, { detail: details }));
+
+                        console.log(details);
+                        console.groupEnd();
+                    });
+                };
+
+                // store <button> tags in array
+                const btns = Array.from(document.querySelectorAll('button'));
+
+                // add click handler to buttons
+                btns.forEach(btn => {
+                    btn.addEventListener('click', testDownloadNext);
+                });
+
+            })();
+        </script>
+    </body>
 </html>
