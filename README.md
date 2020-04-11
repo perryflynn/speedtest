@@ -2,6 +2,10 @@
 
 Simple upload and download bandwidth test in browser javascript.
 
+## Demo
+
+![Demo](demo.gif)
+
 ## Workflow
 
 Download:
@@ -15,10 +19,6 @@ Upload:
 - Test upload with 5 Megabytes of data
 - Calculate a amount of data for a 10 Seconds long test
 - Perform upload speed test
-
-## Demo
-
-![Demo](demo.gif)
 
 ## Installation
 
