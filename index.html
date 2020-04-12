@@ -372,7 +372,7 @@
                     // run now
                     const url = ev.target.dataset.file;
                     const beginTime = performance.now();
-                    const targetTime = 10000;
+                    const targetTime = 15000;
                     const initialIndexIncrement = 1024 * 1024 * 5;
 
                     console.group('Test Download...');
@@ -402,7 +402,7 @@
                         const newEndIndex = Math.round(initialIndexIncrement / duration * targetTime) + initialIndexIncrement;
 
                         console.log('Took ', Math.round(duration * 100) / 100, 'ms for downloading ', Math.round(initialIndexIncrement / 1024 / 1024 * 100) / 100, 'MB of test data');
-                        console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for the real test');
+                        console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for testing ', Math.round(targetTime / 100) / 10, ' seconds');
 
                         return of(newEndIndex);
                     })
@@ -431,6 +431,7 @@
                         details.done = true;
                         wrap.dispatchEvent(new CustomEvent(downloadEventName, { detail: details }));
 
+                        console.log('Download: ', Math.round(details.averageMbit * 100) / 100, ' MBit/sec');
                         console.log(details);
                         console.groupEnd();
 
@@ -451,7 +452,7 @@
                             const newEndIndex = Math.round(initialIndexIncrement / duration * targetTime) + initialIndexIncrement;
 
                             console.log('Took ', Math.round(duration * 100) / 100, 'ms for uploading ', Math.round(initialIndexIncrement / 1024 / 1024 * 100) / 100, 'MB of test data');
-                            console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for the real test');
+                            console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for testing ', Math.round(targetTime / 100) / 10, ' seconds');
 
                             return of({ length: newEndIndex, blob: blob });
                         });
@@ -490,6 +491,7 @@
                         details.done = true;
                         wrap.dispatchEvent(new CustomEvent(uploadEventName, { detail: details }));
 
+                        console.log('Upload: ', Math.round(details.averageMbit * 100) / 100, ' MBit/sec');
                         console.log(details);
                         console.groupEnd();
                     });

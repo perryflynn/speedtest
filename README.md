@@ -6,18 +6,20 @@ Simple upload and download bandwidth test in browser javascript.
 
 ![Demo](demo.gif)
 
+![Demo Dev](demo-dev.gif)
+
 ## Workflow
 
 Download:
 
 - Test download with 5 Megabytes of data
-- Calculate a amount of data for a 10 Seconds long test
+- Calculate a amount of data for a 15 Seconds long test
 - Perform download speed test
 
 Upload:
 
 - Test upload with 5 Megabytes of data
-- Calculate a amount of data for a 10 Seconds long test
+- Calculate a amount of data for a 15 Seconds long test
 - Perform upload speed test
 
 ## Installation
@@ -37,7 +39,7 @@ dd if=/dev/urandom of=5000mb.bin bs=512 count=10000000
 
 The test mechanism uses [HTTP Byte Range Requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Range_requests).
 After a short negotiation with 5 Megabytes, it uses extact this amount
-of data to run a test for 10 seconds.
+of data to run a test for 15 seconds.
 
 ### Create fake endpoint for uploads
 
@@ -61,6 +63,10 @@ location /upload {
 **This not work with HTTP2!**
 
 If you have an idea why, please let me know. :-)
+
+I also don't have any idea how good this upload mechanism scales.
+Maybe you should create an PHP (or whatever) script which streams the
+upload to `/dev/null`.
 
 ## Note on testing
 
