@@ -97,7 +97,7 @@
             <div class="outcolumn">
                 <div id="wrap">
                     <p>
-                        <button data-file="5000mb.bin">Start</button>
+                        <button>Start</button>
                     </p>
                     <p id="message">Idle</p>
                     <p>
@@ -121,6 +121,18 @@
         </div>
 
         <script>
+
+            /**
+             * Configuration
+             */
+            const config = {
+                testFile: '5000mb.bin',
+                uploadEndpoint: 'upload.php',
+                targetTime: 15 * 1000, // 15 seconds
+                negotiationSize: 1024 * 1024 * 5, // 5 MByte
+            };
+
+            // constants
             const wrap = document.getElementById('wrap');
             const updateEventName = 'testUpdate';
             const downloadEventName = 'downloadUpdate';
@@ -323,10 +335,13 @@
                         cfg(req);
                     }
 
+                    /*
                     var form = new FormData();
                     form.append("upload", new File([ blob.slice(start, end) ], "awesome.jpg"));
-
                     req.send(form);
+                    */
+
+                    req.send(blob.slice(start, end));
 
                     return promise;
                 };
@@ -370,10 +385,7 @@
                     ev.target.style.display = "none";
 
                     // run now
-                    const url = ev.target.dataset.file;
                     const beginTime = performance.now();
-                    const targetTime = 15000;
-                    const initialIndexIncrement = 1024 * 1024 * 5;
 
                     console.group('Test Download...');
                     console.info('Begin to negotiate download size...');
@@ -395,14 +407,14 @@
                     details.message = 'Negotiate...';
                     wrap.dispatchEvent(new CustomEvent(downloadEventName, { detail: details }));
 
-                    return downloadChunk(url + '?' + Date.now(), 1, initialIndexIncrement).then(() =>
+                    return downloadChunk(config.testFile + '?' + Date.now(), 1, config.negotiationSize).then(() =>
                     {
                         // use the download stats to calculate the real test size
                         const duration = performance.now() - beginTime;
-                        const newEndIndex = Math.round(initialIndexIncrement / duration * targetTime) + initialIndexIncrement;
+                        const newEndIndex = Math.round(config.negotiationSize / duration * config.targetTime) + config.negotiationSize;
 
-                        console.log('Took ', Math.round(duration * 100) / 100, 'ms for downloading ', Math.round(initialIndexIncrement / 1024 / 1024 * 100) / 100, 'MB of test data');
-                        console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for testing ', Math.round(targetTime / 100) / 10, ' seconds');
+                        console.log('Took ', Math.round(duration * 100) / 100, 'ms for downloading ', Math.round(config.negotiationSize / 1024 / 1024 * 100) / 100, 'MB of test data');
+                        console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for testing ', Math.round(config.targetTime / 100) / 10, ' seconds');
 
                         return of(newEndIndex);
                     })
@@ -412,7 +424,7 @@
                         details.start = Date.now();
                         details.message = "Test download...";
 
-                        return downloadChunk(url + '?' + Date.now(), 1, newEndIndex, req =>
+                        return downloadChunk(config.testFile + '?' + Date.now(), 1, newEndIndex, req =>
                         {
                             req.addEventListener('progress', ev =>
                             {
@@ -445,14 +457,14 @@
                         console.group('Test Upload...');
                         console.info('Begin to negotiate upload size...');
 
-                        return uploadChunk("/upload" + '?' + Date.now(), blob, 1, initialIndexIncrement).then(() =>
+                        return uploadChunk(config.uploadEndpoint + '?' + Date.now(), blob, 1, config.negotiationSize).then(() =>
                         {
                             // use the upload stats to calculate the real test size
                             const duration = performance.now() - uploadBegin;
-                            const newEndIndex = Math.round(initialIndexIncrement / duration * targetTime) + initialIndexIncrement;
+                            const newEndIndex = Math.round(config.negotiationSize / duration * config.targetTime) + config.negotiationSize;
 
-                            console.log('Took ', Math.round(duration * 100) / 100, 'ms for uploading ', Math.round(initialIndexIncrement / 1024 / 1024 * 100) / 100, 'MB of test data');
-                            console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for testing ', Math.round(targetTime / 100) / 10, ' seconds');
+                            console.log('Took ', Math.round(duration * 100) / 100, 'ms for uploading ', Math.round(config.negotiationSize / 1024 / 1024 * 100) / 100, 'MB of test data');
+                            console.log('Use ', Math.round(newEndIndex / 1024 / 1024 * 100) / 100, 'MB for testing ', Math.round(config.targetTime / 100) / 10, ' seconds');
 
                             return of({ length: newEndIndex, blob: blob });
                         });
@@ -472,7 +484,7 @@
                         details.eta = 0;
                         details.percent = 0;
 
-                        return uploadChunk("/upload" + '?' + Date.now(), negInfo.blob, 1, negInfo.length, req =>
+                        return uploadChunk(config.uploadEndpoint + '?' + Date.now(), negInfo.blob, 1, negInfo.length, req =>
                         {
                             req.upload.addEventListener('progress', ev =>
                             {

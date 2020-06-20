@@ -43,30 +43,12 @@ of data to run a test for 15 seconds.
 
 ### Create fake endpoint for uploads
 
-The following example NGINX configuration creates a fake endpoint
-for uploading test data which is streamed into `/dev/null`:
+For example, you can use the `upload.php` as a test endpoint.
+You can also use any kind of other programming language.
 
-```
-location /upload {
-    gzip off;
-    client_max_body_size 10G;
-    client_body_buffer_size 1m;
-    client_body_in_single_buffer on;
+The test just sends the test data in a raw request body.
 
-    echo_read_request_body;
-    access_log /dev/null postdata;
-    default_type text/plain;
-    return 200 "OK";
-}
-```
-
-**This not work with HTTP2!**
-
-If you have an idea why, please let me know. :-)
-
-I also don't have any idea how good this upload mechanism scales.
-Maybe you should create an PHP (or whatever) script which streams the
-upload to `/dev/null`.
+No multipart upload.
 
 ## Note on testing
 
